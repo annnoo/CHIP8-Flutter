@@ -1,4 +1,9 @@
+import 'dart:ui' as prefix0;
+
+import 'package:chip8/BinaryImageDecoder.dart';
+import 'package:chip8/chip8/chip8.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() => runApp(MyApp());
 
@@ -48,37 +53,47 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _incrementCounter() {
     setState(() {
-    
       _counter++;
+    });
+  }
+
+  Chip8 chip8 = Chip8();
+  Image screenImage;
+  @override
+  void initState() {
+    loadRom();
+
+    super.initState();
+  }
+
+
+  loadRom(){
+    final data = rootBundle.load('assets/roms/IBM.ch8').then((item) {
+      var rom = item.buffer.asUint8List();
+
+      this.chip8.loadRom(rom);
+    this.chip8.memory.setPixel(Point(x: 10,y:20), true);
+      setState(() {
+        screenImage = new Image.memory(
+          BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
+          gaplessPlayback: true,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.none,
+        );
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
- 
+    
     return Scaffold(
       appBar: AppBar(
-     
         title: Text(widget.title),
       ),
-      body: Center(
-
-        child: Column(
-     
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.display1,
-            ),
-          ],
-        ),
-      ),
+      body: Center(child: screenImage),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: loadRom,
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.

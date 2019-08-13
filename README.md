@@ -1,6 +1,26 @@
-# chip8
+# Flutter CHIP-8 Emulator
 
-A new Flutter project.
+## Hardware Specs
+
+- 4096 8-Bit Memory Slots (0x1000)
+- 64*32 Pixel => 
+- Stack
+  - 16 x 16-bit
+  -  Stpres address that should be returned
+- Address Register (*I*)
+  - 16-bit
+  - Used when doing Operations with Memory 
+- Program Counter (*PC*)
+  - 16-bit
+  - stores currently executing adress
+- Stack Counter (*SC*)
+  - min. 8-bit
+  - Point to top level of stack
+
+
+- Programs start at 0x200
+
+
 
 ## Getting Started
 
