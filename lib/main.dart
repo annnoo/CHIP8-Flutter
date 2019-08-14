@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as prefix0;
 
 import 'package:chip8/BinaryImageDecoder.dart';
@@ -59,6 +60,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Chip8 chip8 = Chip8();
   Image screenImage;
+
+  Timer _timer;
   @override
   void initState() {
     loadRom();
@@ -73,6 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       this.chip8.loadRom(rom);
     this.chip8.memory.setPixel(Point(x: 10,y:20), true);
+      _timer = new Timer.periodic(new Duration(milliseconds: 1), chip8.tick());
       setState(() {
         screenImage = new Image.memory(
           BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),

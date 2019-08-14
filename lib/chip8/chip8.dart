@@ -6,17 +6,28 @@ const SCREEN_SIZE = SCREEN_WIDTH * SCREEN_HEIGHT;
 const BASE = 0x200;
 class Chip8{
   Memory memory;
-  int pc = 0x200;
+  int _pc = 0x200;
+  int _sp = 0;
+  int _idx = 0;
+  Map<int, void Function(int)> _opCodes;
+
+
+
 
 
   
   Chip8(){
     this.memory = new Memory();
 
+     _opCodes = <int, void Function(int)>{
+      0x1: _0x1_JUMP,
+     
+    };
+
   }
 
   loadRom(Uint8List rom){
-
+   
     print("load");
     for (var i = 0; i < rom.length; i++) {
       this.memory.setMemory(BASE+i, rom[i]);
@@ -26,6 +37,29 @@ class Chip8{
       print(this.memory.getMemory(i));
     }
 
+  }
+
+  tick(){
+    var opcode =  memory.memory.getUint8(_pc++) << 8 | memory.memory.getUint8(_pc++);
+
+    final maskedOpcode = opcode << 12;
+    print(opcode.toString() +" | "+ maskedOpcode.toString());
+    print(_pc);
+    if(_opCodes.containsKey(maskedOpcode)){
+      _opCodes[maskedOpcode](opcode);
+    }
+    else {
+      print("not implemented");
+    }
+
+
+  }
+  _0x1_JUMP(int opcode){
+    _pc = _nnn(opcode);
+  }
+
+  _nnn(int opcode){
+    return opcode & 0x0FFF;
   }
 }
 
