@@ -9,6 +9,10 @@ class Chip8{
   int _pc = 0x200;
   int _sp = 0;
   int _idx = 0;
+
+  Uint8List _registers = new Uint8List(16);
+
+
   Map<int, void Function(int)> _opCodes;
 
 
@@ -21,6 +25,7 @@ class Chip8{
 
      _opCodes = <int, void Function(int)>{
       0x1: _0x1_JUMP,
+      
      
     };
 
@@ -40,6 +45,9 @@ class Chip8{
   }
 
   tick(){
+    if(_pc > 4096){
+      _pc = 0x200;
+    }
     var opcode =  memory.memory.getUint8(_pc++) << 8 | memory.memory.getUint8(_pc++);
 
     final maskedOpcode = opcode << 12;
@@ -55,11 +63,11 @@ class Chip8{
 
   }
   _0x1_JUMP(int opcode){
-    _pc = _nnn(opcode);
+    _pc = _nnn(opcode) -2;
   }
 
   _nnn(int opcode){
-    return opcode & 0x0FFF;
+    return opcode & 0x0FFF; // bitmask to get last 3 
   }
 }
 
@@ -96,7 +104,7 @@ class Memory {
 class VRAM {
   List<bool> vram;
   VRAM(){
-    this.vram = List.generate(SCREEN_SIZE, (i)=> false,growable: false);
+    this._reset();
   }
 
   _setPixel(Point coord, bool value){
@@ -104,6 +112,10 @@ class VRAM {
   }
   bool getPixel(Point coord){
     return this.vram[coord.y*64+coord.x];
+  }
+  void _reset(){
+    this.vram = List.generate(SCREEN_SIZE, (i)=> false,growable: false);
+
   }
 
   
