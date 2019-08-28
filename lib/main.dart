@@ -76,8 +76,18 @@ class _MyHomePageState extends State<MyHomePage> {
       var rom = item.buffer.asUint8List();
 
       this.chip8.loadRom(rom);
-    this.chip8.memory.setPixel(Point(x: 10,y:20), true);
-      _timer = new Timer.periodic(new Duration(milliseconds: 1),(_) => chip8.tick());
+      _timer = new Timer.periodic(new Duration(milliseconds: 1),(_) {
+      chip8.tick();
+       setState(() {
+        screenImage = new Image.memory(
+          BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
+          gaplessPlayback: true,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.none,
+        );
+      });
+      }
+      );
       setState(() {
         screenImage = new Image.memory(
           BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
