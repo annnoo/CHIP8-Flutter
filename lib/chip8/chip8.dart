@@ -91,8 +91,23 @@ class Chip8 {
     }
   }
 
+_printV(){
+  var str = "";
+  
+
+  for (var i = 0; i < this._V.length; i++) {
+    str+= i.toString();
+    str += ":";
+    str+=this._V[i].toRadixString(16);
+    str+=" | ";
+
+
+  }
+  print(str);
+}
   tick() {
-    print(_opCodes.keys.toString());
+
+    this._printV();
 
     if (_pc >= 4096) {
       _pc = 0x200;
@@ -250,9 +265,11 @@ class Chip8 {
         Point coord =
             Point(x: (Vx + j) % SCREEN_WIDTH, y: (Vy + i) % SCREEN_HEIGHT);
         bool currentPixel = this.memory.vram.getPixel(coord);
+//buggy, delete
+          this.memory.setPixel(coord, true);
 
         if (sprite & (0x80 >> j) != 0) {
-          this.memory.setPixel(coord, !currentPixel);
+          this.memory.setPixel(coord, true);
           if (currentPixel) {
             this._V[0xF] = 1;
           }
