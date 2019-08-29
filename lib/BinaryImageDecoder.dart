@@ -6,7 +6,6 @@ import 'package:chip8/chip8/chip8.dart';
 
 class BinaryImageDecoder {
   static createImage(List<bool> screen) {
-    print(screen.length);
     const headerLengthBytes = 62;
     final lengthBytes = headerLengthBytes + (SCREEN_SIZE);
     var header = Uint8List(headerLengthBytes);

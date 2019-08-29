@@ -36,6 +36,8 @@ class Chip8 {
   Map<int, void Function(int)> _EtcOpCodes;
   Set<int> _keys = new Set<int>();
 
+  Map<int, OPCODE_FUNTION> _MathOpCodes;
+
   step() {
     clockStep();
     if (this._steps == CLOCK_SPEED ~/ TIMER_SPEED) {
@@ -45,11 +47,12 @@ class Chip8 {
   }
 
   stop() {
-    this._timerClock.cancel();
-    this._mainClock.cancel();
+    this._timerClock?.cancel();
+    this._mainClock?.cancel();
   }
 
   _reset() {
+    stop();
     this._resetCPU();
     _initClocks();
     _resetMemory();
@@ -70,6 +73,7 @@ class Chip8 {
   }
 
   _initClocks() {
+     stop();
     this._timerClock =
         new Timer.periodic(Duration(milliseconds: TIMER_SPEED), (_) {
       timerStep();
@@ -82,10 +86,10 @@ class Chip8 {
   }
 
   start() {
+     stop();
     this._resetCPU();
     this._initClocks();
 
-  
   }
 
   Chip8() {
@@ -108,6 +112,8 @@ class Chip8 {
       0xD: _0xD_DRAW_SPRITE,
       0xE: _0xE_KEY_SKIP,
       0xF: _0xF_ETC,
+      0x8:_0x8_MATH,
+      0x9:_0x9_SKIP_IF_X_NEQ_Y
     };
 
     _EtcOpCodes = <int, OPCODE_FUNTION>{
@@ -121,8 +127,37 @@ class Chip8 {
       0x55: _0xFX55_STORE_MEMORY,
       0x65: _0xFX65_FILL_V,
     };
+    _MathOpCodes = <int, OPCODE_FUNTION>{
+      0x0: _0x8XY0_SET_X_TO_Y,
+      0x1: _0x8XY1_SET_X_TO_OR_Y,
+      0x2: _0x8XY2_SET_X_TO_AND_Y,
+      0x3: _0x8XY3_SET_X_TO_XOR_Y,
+      0x4: _0x8XY4_ADD_X_TO_Y_CARRY,
+      0x5: _0x8XY5_SUB_Y_FROM_X_CARRY,
+      0x6: _0x8XY6_SHIFTR_X_CARRY,
+      0x7: _0x8XY7_SET_X_TO_Y_MINUS_X_CARRY,
+      0xE: _0x8XYE_SHIFTL_X_CARRY,
+    };
     print(_opCodes.keys.toString());
   }
+
+  _0x8_MATH(int opcode){
+      int n = OpcodeUtil.N(opcode);
+    if (this._MathOpCodes.containsKey(n)) {
+      this._MathOpCodes[n](opcode);
+    } else {
+      print("F Not Implemented");
+    }
+
+  }
+  _0x9_SKIP_IF_X_NEQ_Y(int opcode){
+    if (this._V[OpcodeUtil.X(opcode)] != OpcodeUtil.NN(opcode)) {
+      //Skip next instruction
+      this._pc += 2;
+    }
+
+  }
+
   _0xFX07_SET_X_TO_DELAY(int opcode) {
     this._V[OpcodeUtil.X(opcode)] = this._delayTimer;
   }
@@ -163,8 +198,7 @@ class Chip8 {
 
   loadRomAndStart(Uint8List rom) {
     this.loadRom(rom);
-      this._resetCPU();
-    this._initClocks();
+   this.start();
   }
 
   loadRom(Uint8List rom) {
@@ -191,7 +225,9 @@ class Chip8 {
     print(str);
   }
 
-  clockStep() {}
+  clockStep() {
+    executeStep();
+  }
 
   void timerStep() {
     if (this._delayTimer > 0) this._delayTimer--;

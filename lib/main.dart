@@ -93,7 +93,7 @@ _newTimer([int t=10]){
 
   loadRom() {
     if (_timer != null) _timer.cancel();
-    final data = rootBundle.load('assets/roms/IBM.ch8').then((item) {
+    final data = rootBundle.load('assets/roms/BLINKY.ch8').then((item) {
       var rom = item.buffer.asUint8List();
 
       this.chip8.loadRom(rom);
