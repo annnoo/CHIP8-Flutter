@@ -58,8 +58,13 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Chip8 chip8 = Chip8(); 
-  Image screenImage;
+  Chip8 chip8 = Chip8();
+  Image screenImage = new Image.memory(
+            BinaryImageDecoder.createImage(List.generate(SCREEN_SIZE, (i) => false, growable: false)),
+            gaplessPlayback: true,
+            filterQuality: FilterQuality.none,
+            scale: 0.1,
+          );
 
   Timer _timer;
   @override
@@ -70,31 +75,45 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
 
-  loadRom(){
-     if (_timer != null) _timer.cancel();
+
+_newTimer([int t=10]){
+  this?._timer?.cancel();
+  this._timer = new Timer.periodic(new Duration(milliseconds: t), (_) {
+       
+        setState(() {
+          screenImage = new Image.memory(
+            BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
+            gaplessPlayback: true,
+            filterQuality: FilterQuality.none,
+            scale: 0.1,
+          );
+        });
+      });
+}
+
+  loadRom() {
+    if (_timer != null) _timer.cancel();
     final data = rootBundle.load('assets/roms/IBM.ch8').then((item) {
       var rom = item.buffer.asUint8List();
 
       this.chip8.loadRom(rom);
-      _timer = new Timer.periodic(new Duration(milliseconds: 10),(_) {
-      chip8.tick();
-       setState(() {
-        screenImage = new Image.memory(
-          BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
-              gaplessPlayback: true,
-          filterQuality: FilterQuality.none,
-          scale: 0.1,
-        );
+      this.chip8.start();    
+      _timer = new Timer.periodic(new Duration(milliseconds: 10), (_) {
+        setState(() {
+          screenImage = new Image.memory(
+            BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
+            gaplessPlayback: true,
+            filterQuality: FilterQuality.none,
+            scale: 0.1,
+          );
+        });
       });
-      }
-      );
       setState(() {
         screenImage = new Image.memory(
           BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
           gaplessPlayback: true,
           filterQuality: FilterQuality.none,
           scale: 0.1,
-     
         );
       });
     });
@@ -102,17 +121,39 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(child: screenImage),
+      body: Center(
+          child: Column(
+        children: <Widget>[
+          screenImage,
+          RaisedButton(
+            child: Text("F"),
+            textColor: Colors.blue,
+onPressed: () {this.chip8.pressKey(1);},
+    
+            elevation: 10,
+          ),
+          RaisedButton(
+onPressed: () {this.chip8.pressKey(7);},
+            child: Text("1"),
+            textColor: Colors.blue,
+    
+            elevation: 10,
+          )
+        ],
+      )),
       floatingActionButton: FloatingActionButton(
-        onPressed: loadRom,
+        onPressed: (){_newTimer(1000);},
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  _pressKey(int key){
+    this.chip8.pressKey(key);
   }
 }

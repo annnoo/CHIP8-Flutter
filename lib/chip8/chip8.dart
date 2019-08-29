@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -10,13 +11,24 @@ const SCREEN_HEIGHT = 32;
 const SCREEN_SIZE = SCREEN_WIDTH * SCREEN_HEIGHT;
 const BASE = 0x200;
 
+const CLOCK_SPEED = 1000 ~/ 500;
+const TIMER_SPEED = 1000 ~/ 60;
+
 typedef OPCODE_FUNTION = Function(int);
 
 class Chip8 {
   Memory memory;
+
+  Stack _stack;
+  Timer _timerClock;
+  Timer _mainClock;
+
   int _pc = 0x200;
   int _idx = 0;
-  Stack _stack;
+  int _steps = 0;
+
+  int _delayTimer = 0;
+  int _soundTimer = 0;
 
   Uint8List _V = new Uint8List(16); //Registers
   final _rand = new Random();
@@ -24,9 +36,62 @@ class Chip8 {
   Map<int, void Function(int)> _EtcOpCodes;
   Set<int> _keys = new Set<int>();
 
-  Chip8() {
+  step() {
+    clockStep();
+    if (this._steps == CLOCK_SPEED ~/ TIMER_SPEED) {
+      this.timerStep();
+    }
+    _steps++;
+  }
+
+  stop() {
+    this._timerClock.cancel();
+    this._mainClock.cancel();
+  }
+
+  _reset() {
+    this._resetCPU();
+    _initClocks();
+    _resetMemory();
+  }
+
+  _resetMemory() {
     this.memory = new Memory();
-    
+    this._stack = new Stack();
+   
+  }
+  _resetCPU(){
+    this._pc = 0x200;
+    this._idx = 0;
+    this._steps = 0;
+
+    this._delayTimer = 0;
+    this._soundTimer = 0;
+  }
+
+  _initClocks() {
+    this._timerClock =
+        new Timer.periodic(Duration(milliseconds: TIMER_SPEED), (_) {
+      timerStep();
+    });
+
+    this._mainClock =
+        new Timer.periodic(Duration(milliseconds: CLOCK_SPEED), (_) {
+      clockStep();
+    });
+  }
+
+  start() {
+    this._resetCPU();
+    this._initClocks();
+
+  
+  }
+
+  Chip8() {
+    this._resetCPU();
+    _resetMemory();
+
     _opCodes = <int, OPCODE_FUNTION>{
       0x0: _0x0_CLEAR_OR_RETURN,
       0x1: _0x1_JUMP,
@@ -38,7 +103,7 @@ class Chip8 {
       0x6: _0x6_SET_X_TO_NN,
       0x7: _0x7_ADD_NN_TO_X,
       0xA: _0xA_SET_I_TO_NNN,
-      0xB:_0xB_JUMP_TO_NNN_PLUS_V0,
+      0xB: _0xB_JUMP_TO_NNN_PLUS_V0,
       0xC: _0xC_SET_X_RANDOM,
       0xD: _0xD_DRAW_SPRITE,
       0xE: _0xE_KEY_SKIP,
@@ -46,7 +111,7 @@ class Chip8 {
     };
 
     _EtcOpCodes = <int, OPCODE_FUNTION>{
-      0x07: _0xFX07_SET_DELAY_TO_X,
+      0x07: _0xFX07_SET_X_TO_DELAY,
       0x0A: _0xFX0A_WAIT_FOR_KEY,
       0x15: _0xFX15,
       0x18: _0xFX18,
@@ -58,35 +123,33 @@ class Chip8 {
     };
     print(_opCodes.keys.toString());
   }
-  _0xFX07_SET_DELAY_TO_X(int opcode) {}
+  _0xFX07_SET_X_TO_DELAY(int opcode) {
+    this._V[OpcodeUtil.X(opcode)] = this._delayTimer;
+  }
 
   _0xFX0A_WAIT_FOR_KEY(int opcode) {
-    throw Exception(opcode);
     int x = OpcodeUtil.X(opcode);
-    if(this._keys.length != 0){
+    if (this._keys.length != 0) {
       this._V[x] = _keys.first;
-    }
-    else {
-      // Jump back 
-      this._pc -=2;
+    } else {
+      // Jump back
+      this._pc -= 2;
     }
   }
+
   _0xFX15(int opcode) {
-    throw Exception(opcode);
+    this._delayTimer = OpcodeUtil.X(opcode);
   }
+
   _0xFX18(int opcode) {
-    throw Exception(opcode);
-
+    this._soundTimer = OpcodeUtil.X(opcode);
   }
+
   _0xFX33(int opcode) {
-
-    int val = this._V[OpcodeUtil.X(opcode)]; 
-    this.memory.setMemory(this._idx, val ~/100);
-    this.memory.setMemory(this._idx + 1, (val %100 )~/10);
-    this.memory.setMemory(this._idx + 2,(val %10));
-
-    
-
+    int val = this._V[OpcodeUtil.X(opcode)];
+    this.memory.setMemory(this._idx, val ~/ 100);
+    this.memory.setMemory(this._idx + 1, (val % 100) ~/ 10);
+    this.memory.setMemory(this._idx + 2, (val % 10));
   }
 
   _0x0_CLEAR_OR_RETURN(int opcode) {
@@ -98,6 +161,12 @@ class Chip8 {
     }
   }
 
+  loadRomAndStart(Uint8List rom) {
+    this.loadRom(rom);
+      this._resetCPU();
+    this._initClocks();
+  }
+
   loadRom(Uint8List rom) {
     print("load");
     for (var i = 0; i < rom.length; i++) {
@@ -107,24 +176,35 @@ class Chip8 {
     for (var i = 0; i < this.memory.memory.lengthInBytes; i++) {
       print(this.memory.getMemory(i));
     }
+   
   }
 
-_printV(){
-  var str = "";
-  
+  _printV() {
+    var str = "";
 
-  for (var i = 0; i < this._V.length; i++) {
-    str+= i.toString();
-    str += ":";
-    str+=this._V[i].toRadixString(16);
-    str+=" | ";
-
-
+    for (var i = 0; i < this._V.length; i++) {
+      str += i.toString();
+      str += ":";
+      str += this._V[i].toRadixString(16);
+      str += " | ";
+    }
+    print(str);
   }
-  print(str);
-}
-  tick() {
 
+  clockStep() {}
+
+  void timerStep() {
+    if (this._delayTimer > 0) this._delayTimer--;
+
+    if (this._soundTimer > 0) {
+      this._soundTimer--;
+      if (this._soundTimer == 0) {
+        print("SOUND");
+      }
+    }
+  }
+
+  executeStep() {
     this._printV();
 
     if (_pc >= 4096) {
@@ -186,10 +266,7 @@ _printV(){
   }
 
   _0x7_ADD_NN_TO_X(int opcode) {
-  
     this._V[OpcodeUtil.X(opcode)] += OpcodeUtil.NN(opcode);
-   
-
   }
 
   _0x8XY0_SET_X_TO_Y(int opcode) {
@@ -272,6 +349,11 @@ _printV(){
     this._pc = OpcodeUtil.NNN(opcode) + this._V[0];
   }
 
+  _0xC_SET_X_RANDOM(int opcode) {
+    this._V[OpcodeUtil.X(opcode)] =
+        this._rand.nextInt(256) & OpcodeUtil.NN(opcode);
+  }
+
   _0xD_DRAW_SPRITE(int opcode) {
     int width = 8;
     int height = OpcodeUtil.N(opcode);
@@ -283,9 +365,9 @@ _printV(){
     for (int y = 0; y < height; y++) {
       int sprite = this.memory.getMemory(this._idx + y);
       int yPos = (Vy + y) % SCREEN_HEIGHT;
-      
+
       // => 1111 1111, 0111 1111, 0011 1111 ....
-      int bitmask =  0x80; 
+      int bitmask = 0x80;
       for (int x = 0; x < width; x++) {
         int xPos = (Vx + x) % SCREEN_WIDTH;
         Point coord = Point(x: xPos, y: yPos);
@@ -295,14 +377,12 @@ _printV(){
 
         bool doDraw = sprite & bitmask > 0;
         //buggy, delete
-          this.memory.setPixel(coord, true);
+        this.memory.setPixel(coord, true);
 
         if (doDraw && currentPixel) {
           this._V[0xF] = 1;
           doDraw = false;
-          
-        }
-        else if(!doDraw && currentPixel){
+        } else if (!doDraw && currentPixel) {
           doDraw = true;
         }
 
@@ -310,18 +390,9 @@ _printV(){
         bitmask = bitmask >> 1;
       }
     }
-
-    this.memory.vram.vram.forEach((i) {
-      if (i) print(i);
-    });
   }
 
-  _0xC_SET_X_RANDOM(int opcode) {
-    this._V[OpcodeUtil.N(opcode)] =
-        this._rand.nextInt(256) & OpcodeUtil.NN(opcode);
-  }
-
-  _0xEX9E_SKIP_IF_KEY_PRESSED(int opcode ) {
+  _0xEX9E_SKIP_IF_KEY_PRESSED(int opcode) {
     int x = OpcodeUtil.X(opcode);
 
     if (this._keys.contains(this._V[x])) this._pc += 2;
@@ -373,6 +444,10 @@ _printV(){
       this._V[i] = this.memory.getMemory(_idx + i);
     }
   }
+
+  pressKey(int s) {
+    this._keys.add(s);
+  }
 }
 
 class Memory {
@@ -385,7 +460,6 @@ class Memory {
 
   setPixel(Point coord, bool value) {
     this.vram.setPixel(coord, value);
-    print(this.vram);
   }
 
   get screen {
