@@ -35,7 +35,8 @@ class BinaryImageDecoder {
 
     for (var y = 0; y < SCREEN_HEIGHT; y++) {
       for (var x = 0; x < SCREEN_WIDTH; x++) {
-        bmpImage[i++] = screen[y * 64 + x] ? 0 : 1;
+        bmpImage[i++] = screen[(( SCREEN_HEIGHT-1-y) * 64 + x)] ? 1 : 0;
+        
       }
     }
     ;

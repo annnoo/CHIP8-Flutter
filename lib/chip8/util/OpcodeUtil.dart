@@ -13,11 +13,11 @@ class OpcodeUtil {
   }
 
   static X(int opcode){
-    return opcode & 0x0F00 >> 8;
+    return (opcode & 0x0F00) >> 8;
   }
 
   static Y(int opcode) {
-    return opcode & 0x00F0 >> 4;
+    return (opcode & 0x00F0) >> 4;
   }
 
   static START(int opcode){

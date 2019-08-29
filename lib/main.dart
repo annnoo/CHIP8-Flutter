@@ -58,7 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Chip8 chip8 = Chip8();
+  Chip8 chip8 = Chip8(); 
   Image screenImage;
 
   Timer _timer;
@@ -76,14 +76,14 @@ class _MyHomePageState extends State<MyHomePage> {
       var rom = item.buffer.asUint8List();
 
       this.chip8.loadRom(rom);
-      _timer = new Timer.periodic(new Duration(milliseconds: 1),(_) {
+      _timer = new Timer.periodic(new Duration(milliseconds: 10),(_) {
       chip8.tick();
        setState(() {
         screenImage = new Image.memory(
           BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
-          gaplessPlayback: true,
-          fit: BoxFit.contain,
+              gaplessPlayback: true,
           filterQuality: FilterQuality.none,
+          scale: 0.1,
         );
       });
       }
@@ -92,8 +92,9 @@ class _MyHomePageState extends State<MyHomePage> {
         screenImage = new Image.memory(
           BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
           gaplessPlayback: true,
-          fit: BoxFit.contain,
           filterQuality: FilterQuality.none,
+          scale: 0.1,
+     
         );
       });
     });

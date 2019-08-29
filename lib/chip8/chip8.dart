@@ -26,7 +26,7 @@ class Chip8 {
 
   Chip8() {
     this.memory = new Memory();
-
+    
     _opCodes = <int, OPCODE_FUNTION>{
       0x0: _0x0_CLEAR_OR_RETURN,
       0x1: _0x1_JUMP,
@@ -37,6 +37,9 @@ class Chip8 {
       0x5: _0x5_SKIP_IF_XY,
       0x6: _0x6_SET_X_TO_NN,
       0x7: _0x7_ADD_NN_TO_X,
+      0xA: _0xA_SET_I_TO_NNN,
+      0xB:_0xB_JUMP_TO_NNN_PLUS_V0,
+      0xC: _0xC_SET_X_RANDOM,
       0xD: _0xD_DRAW_SPRITE,
       0xE: _0xE_KEY_SKIP,
       0xF: _0xF_ETC,
@@ -58,6 +61,7 @@ class Chip8 {
   _0xFX07_SET_DELAY_TO_X(int opcode) {}
 
   _0xFX0A_WAIT_FOR_KEY(int opcode) {
+    throw Exception(opcode);
     int x = OpcodeUtil.X(opcode);
     if(this._keys.length != 0){
       this._V[x] = _keys.first;
@@ -67,9 +71,23 @@ class Chip8 {
       this._pc -=2;
     }
   }
-  _0xFX15(int opcode) {}
-  _0xFX18(int opcode) {}
-  _0xFX33(int opcode) {}
+  _0xFX15(int opcode) {
+    throw Exception(opcode);
+  }
+  _0xFX18(int opcode) {
+    throw Exception(opcode);
+
+  }
+  _0xFX33(int opcode) {
+
+    int val = this._V[OpcodeUtil.X(opcode)]; 
+    this.memory.setMemory(this._idx, val ~/100);
+    this.memory.setMemory(this._idx + 1, (val %100 )~/10);
+    this.memory.setMemory(this._idx + 2,(val %10));
+
+    
+
+  }
 
   _0x0_CLEAR_OR_RETURN(int opcode) {
     int nn = OpcodeUtil.NN(opcode);
@@ -126,7 +144,7 @@ _printV(){
   }
 
   _0x1_JUMP(int opcode) {
-    _pc = OpcodeUtil.NNN(opcode) - 2;
+    _pc = OpcodeUtil.NNN(opcode);
   }
 
   _0x00E0_CLEAR(int opcode) {
@@ -168,7 +186,10 @@ _printV(){
   }
 
   _0x7_ADD_NN_TO_X(int opcode) {
+  
     this._V[OpcodeUtil.X(opcode)] += OpcodeUtil.NN(opcode);
+   
+
   }
 
   _0x8XY0_SET_X_TO_Y(int opcode) {
@@ -243,7 +264,7 @@ _printV(){
     this._V[OpcodeUtil.X(opcode)] = this._V[OpcodeUtil.X(opcode)] << 1;
   }
 
-  _0xA_SET_I_(int opcode) {
+  _0xA_SET_I_TO_NNN(int opcode) {
     this._idx = OpcodeUtil.NNN(opcode);
   }
 
@@ -259,21 +280,34 @@ _printV(){
     int Vy = this._V[OpcodeUtil.Y(opcode)];
 
     this._V[0xF] = 0;
-    for (int i = 0; i < height; i++) {
-      int sprite = this.memory.getMemory(this._idx + i);
-      for (int j = 0; j < width; j++) {
-        Point coord =
-            Point(x: (Vx + j) % SCREEN_WIDTH, y: (Vy + i) % SCREEN_HEIGHT);
+    for (int y = 0; y < height; y++) {
+      int sprite = this.memory.getMemory(this._idx + y);
+      int yPos = (Vy + y) % SCREEN_HEIGHT;
+      
+      // => 1111 1111, 0111 1111, 0011 1111 ....
+      int bitmask =  0x80; 
+      for (int x = 0; x < width; x++) {
+        int xPos = (Vx + x) % SCREEN_WIDTH;
+        Point coord = Point(x: xPos, y: yPos);
+
+        print(coord.toString());
         bool currentPixel = this.memory.vram.getPixel(coord);
-//buggy, delete
+
+        bool doDraw = sprite & bitmask > 0;
+        //buggy, delete
           this.memory.setPixel(coord, true);
 
-        if (sprite & (0x80 >> j) != 0) {
-          this.memory.setPixel(coord, true);
-          if (currentPixel) {
-            this._V[0xF] = 1;
-          }
+        if (doDraw && currentPixel) {
+          this._V[0xF] = 1;
+          doDraw = false;
+          
         }
+        else if(!doDraw && currentPixel){
+          doDraw = true;
+        }
+
+        this.memory.setPixel(coord, doDraw);
+        bitmask = bitmask >> 1;
       }
     }
 
@@ -287,7 +321,7 @@ _printV(){
         this._rand.nextInt(256) & OpcodeUtil.NN(opcode);
   }
 
-  _0xEX9E_SKIP_IF_KEY_PRESSED(int opcode) {
+  _0xEX9E_SKIP_IF_KEY_PRESSED(int opcode ) {
     int x = OpcodeUtil.X(opcode);
 
     if (this._keys.contains(this._V[x])) this._pc += 2;
@@ -389,4 +423,9 @@ class VRAM {
 class Point {
   int x, y;
   Point({this.x, this.y});
+
+  @override
+  String toString() {
+    return "Point: ${this.x} : ${this.y}";
+  }
 }
