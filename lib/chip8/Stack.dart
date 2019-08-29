@@ -4,6 +4,7 @@ class Stack {
   Queue stackQueue = new Queue<int>();
 
   int pop(){
+    if(this.stackQueue.length == 0) return 0;
     return stackQueue.removeLast();
   }  
 
