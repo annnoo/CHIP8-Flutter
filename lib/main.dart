@@ -60,11 +60,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Chip8 chip8 = Chip8();
   Image screenImage = new Image.memory(
-            BinaryImageDecoder.createImage(List.generate(SCREEN_SIZE, (i) => false, growable: false)),
-            gaplessPlayback: true,
-            filterQuality: FilterQuality.none,
-            scale: 0.1,
-          );
+    BinaryImageDecoder.createImage(
+        List.generate(SCREEN_SIZE, (i) => false, growable: false)),
+    gaplessPlayback: true,
+    filterQuality: FilterQuality.none,
+    scale: 0.1,
+  );
 
   Timer _timer;
   @override
@@ -74,30 +75,27 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
   }
 
-
-
-_newTimer([int t=10]){
-  this?._timer?.cancel();
-  this._timer = new Timer.periodic(new Duration(milliseconds: t), (_) {
-       
-        setState(() {
-          screenImage = new Image.memory(
-            BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
-            gaplessPlayback: true,
-            filterQuality: FilterQuality.none,
-            scale: 0.1,
-          );
-        });
+  _newTimer([int t = 10]) {
+    this?._timer?.cancel();
+    this._timer = new Timer.periodic(new Duration(milliseconds: t), (_) {
+      setState(() {
+        screenImage = new Image.memory(
+          BinaryImageDecoder.createImage(this.chip8.memory.vram.vram),
+          gaplessPlayback: true,
+          filterQuality: FilterQuality.none,
+          scale: 0.1,
+        );
       });
-}
+    });
+  }
 
   loadRom() {
     if (_timer != null) _timer.cancel();
-    final data = rootBundle.load('assets/roms/BLINKY.ch8').then((item) {
+    final data = rootBundle.load('assets/roms/TETRIS.ch8').then((item) {
       var rom = item.buffer.asUint8List();
 
       this.chip8.loadRom(rom);
-      this.chip8.start();    
+      this.chip8.start();
       _timer = new Timer.periodic(new Duration(milliseconds: 10), (_) {
         setState(() {
           screenImage = new Image.memory(
@@ -129,31 +127,50 @@ _newTimer([int t=10]){
           child: Column(
         children: <Widget>[
           screenImage,
-          RaisedButton(
-            child: Text("F"),
-            textColor: Colors.blue,
-onPressed: () {this.chip8.pressKey(1);},
-    
-            elevation: 10,
-          ),
-          RaisedButton(
-onPressed: () {this.chip8.pressKey(7);},
-            child: Text("1"),
-            textColor: Colors.blue,
-    
-            elevation: 10,
-          )
+          
+          Expanded(
+              child: GridView.count(
+                
+                  crossAxisCount: 4,
+                  children: List.generate(16, (i) {
+                    return new GestureDetector(
+                      child: Container(
+                        decoration: BoxDecoration(
+                            color: Colors.grey, border: Border.all()),
+                        child: Center(child: Text('$i')),
+                      ),
+                      onTapDown: (_) {
+                        this._pressKey(i);
+                      },
+                      onTapUp: (_) {
+                        this._releaseKey(i);
+                      },
+                    );
+                  })))
         ],
       )),
-      floatingActionButton: FloatingActionButton(
-        onPressed: (){_newTimer(1000);},
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
-  _pressKey(int key){
+  _pressKey(int key) {
     this.chip8.pressKey(key);
+  }
+
+  _releaseKey(int key) {
+    this.chip8.releaseKey(key);
+  }
+
+  _generateButtonList() {
+    return Expanded(
+        child: GridView.count(
+            crossAxisCount: 4,
+            children: List.generate(16, (i) {
+              return new GestureDetector(
+                child: RaisedButton(onPressed: () {}, child: Text("${i}")),
+                onTapDown: this._pressKey(i),
+                onTapUp: this._releaseKey(i),
+              );
+            })));
   }
 }
