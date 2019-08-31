@@ -47,6 +47,8 @@ flutter:
     - assets/roms/MAZE.ch8
     - assets/roms/BLINKY.ch8
     - assets/roms/TETRIS.ch8
+    - assets/roms/BC_TEST.ch8
+    - assets/roms/KEY_TEST.ch8
   # To add assets to your application, add an assets section, like this:
   # assets:
   #  - images/a_dot_burr.jpeg

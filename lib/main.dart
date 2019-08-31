@@ -32,6 +32,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
+
   MyHomePage({Key key, this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
@@ -50,8 +51,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  int _counter = 0;  
+  List<int> _buttonOrder = [1,2,3,0xC,4,5,6,0xD,7,8,9,0xE,0xA,0,0xB,0xF];
 
+  Set<int> _keys = new Set<int>();
   void _incrementCounter() {
     setState(() {
       _counter++;
@@ -91,7 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   loadRom() {
     if (_timer != null) _timer.cancel();
-    final data = rootBundle.load('assets/roms/TETRIS.ch8').then((item) {
+    final data = rootBundle.load('assets/roms/KEY_TEST.ch8').then((item) {
       var rom = item.buffer.asUint8List();
 
       this.chip8.loadRom(rom);
@@ -122,6 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        
       ),
       body: Center(
           child: Column(
@@ -133,17 +137,21 @@ class _MyHomePageState extends State<MyHomePage> {
                 
                   crossAxisCount: 4,
                   children: List.generate(16, (i) {
-                    return new GestureDetector(
+                    return new Listener(
                       child: Container(
                         decoration: BoxDecoration(
                             color: Colors.grey, border: Border.all()),
-                        child: Center(child: Text('$i')),
+                        child: Center(child: Text('${this._buttonOrder[i].toRadixString(16)}')),
                       ),
-                      onTapDown: (_) {
-                        this._pressKey(i);
+                      
+                      
+                      onPointerDown: (_) {
+                        
+                        this._pressKey(this._buttonOrder[i]);
                       },
-                      onTapUp: (_) {
-                        this._releaseKey(i);
+                      onPointerUp: (_) {
+                        
+                        this._releaseKey(this._buttonOrder[i]);
                       },
                     );
                   })))
@@ -154,11 +162,21 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _pressKey(int key) {
+    this._keys.add(key);
     this.chip8.pressKey(key);
+
+ 
   }
 
   _releaseKey(int key) {
-    this.chip8.releaseKey(key);
+    this._keys.remove(key);
+   this.chip8.releaseKey(key);
+
+    Future.delayed(Duration(milliseconds: 1000~/60), (){
+    
+        
+      
+    });
   }
 
   _generateButtonList() {
